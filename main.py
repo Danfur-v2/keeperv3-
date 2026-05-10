@@ -8,7 +8,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 from database import Database
 from keeper_ai import KeeperAI
-from handlers import handle_message, start_command, _fire_reminder
+from handlers import handle_message, start_command, status_command, _fire_reminder
 import jobs
 
 load_dotenv()
@@ -86,6 +86,7 @@ def main():
     app.bot_data['ai'] = ai
 
     app.add_handler(CommandHandler('start', start_command))
+    app.add_handler(CommandHandler('status', status_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     setup_jobs(app.job_queue, db)
