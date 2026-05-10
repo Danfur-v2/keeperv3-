@@ -1,14 +1,20 @@
 import sqlite3
 import os
+import logging
 from datetime import datetime, date, timedelta
 import pytz
 
+logger = logging.getLogger(__name__)
 TZ = pytz.timezone('America/Guatemala')
 
 
 class Database:
     def __init__(self):
         self.path = os.getenv('DB_PATH', 'keeper.db')
+        dir_path = os.path.dirname(self.path)
+        if dir_path:
+            os.makedirs(dir_path, exist_ok=True)
+        logger.info(f"Database path: {self.path}")
 
     def conn(self):
         return sqlite3.connect(self.path)
