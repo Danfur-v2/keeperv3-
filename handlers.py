@@ -28,6 +28,66 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    db = context.bot_data['db']
+    now = datetime.now(TZ)
+
+    # Conversations
+    with db.conn() as c:
+        total_convos = c.execute("SELECT COUNT(*) FROM conversation_history").fetchone()[0]
+
+    # Book
+    book = db.get_current_book()
+    book_text = f"{book[1]} by {book[2]}" if book else "None"
+    reading_streak = db.get_reading_streak()
+    books_year = db.get_yearly_book_count()
+
+    # Finances
+    breakdown, monthly_total = db.get_monthly_spending(wallet='personal')
+    monthly_income = db.get_monthly_income()
+    balance = monthly_income - monthly_total
+
+    # XP
+    xp = db.get_total_xp()
+    weekly_xp = db.get_weekly_xp()
+
+    def xp_level(x):
+        if x >= 6000: return "Unstoppable"
+        if x >= 3000: return "Disciplined"
+        if x >= 1500: return "Consistent"
+        if x >= 500:  return "Focused"
+        return "Rookie"
+
+    # Clients
+    unpaid = db.get_unpaid_clients()
+
+    # Recent logs
+    recent = db.get_logs_last_days(3)
+    logs_text = "\n".join(f"  {d} {cat}: {val}" for d, cat, val, _ in recent[:6]) or "  None"
+
+    # Gastos fijos
+    gastos = db.get_gastos_fijos()
+    gastos_total = sum(a for _, a, cur, _ in gastos if cur == 'GTQ')
+
+    msg = (
+        f"📊 Keeper Status — {now.strftime('%b %d, %Y')}\n"
+        f"{'─'*30}\n\n"
+        f"💬 Conversations stored: {total_convos}\n\n"
+        f"📚 Reading\n"
+        f"  Current: {book_text}\n"
+        f"  Streak: {reading_streak} days | Books this year: {books_year}\n\n"
+        f"💰 Finances ({now.strftime('%B')})\n"
+        f"  Income:  Q{monthly_income:.0f}\n"
+        f"  Spent:   Q{monthly_total:.0f}\n"
+        f"  Balance: Q{balance:+.0f}\n"
+        f"  Fixed expenses: Q{gastos_total:.0f}/mo\n\n"
+        f"👥 Unpaid clients: {', '.join(unpaid) if unpaid else 'All paid ✓'}\n\n"
+        f"⚡ XP: {xp} ({xp_level(xp)}) | This week: +{weekly_xp}\n\n"
+        f"📋 Recent logs\n{logs_text}"
+    )
+    await update.message.reply_text(msg)
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db = context.bot_data['db']
     ai = context.bot_data['ai']
